@@ -20,11 +20,22 @@ from pyrogram.types import Message
 
 import config
 
-app = Client(
-    config.SESSION_NAME,
-    api_id=config.API_ID,
-    api_hash=config.API_HASH,
-)
+if config.SESSION_STRING:
+    # Server/Render'da ishlaganda: fayl o'rniga tayyor session string ishlatiladi
+    app = Client(
+        config.SESSION_NAME,
+        api_id=config.API_ID,
+        api_hash=config.API_HASH,
+        session_string=config.SESSION_STRING,
+        in_memory=True,
+    )
+else:
+    # Lokal kompyuterda birinchi marta ishga tushirishda: fayl asosida session
+    app = Client(
+        config.SESSION_NAME,
+        api_id=config.API_ID,
+        api_hash=config.API_HASH,
+    )
 
 # ---- Holat (state) ----
 afk_state = {
@@ -120,4 +131,28 @@ async def auto_reply(client: Client, message: Message):
 
 if __name__ == "__main__":
     print("Userbot ishga tushmoqda...")
+
+    if config.SESSION_STRING:
+        # Render kabi hosting'da ishlaganda, Render web-service porti
+        # tinglanishini talab qiladi - shuning uchun kichik http server
+        # alohida thread'da ishga tushiriladi.
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        class HealthHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"Userbot ishlab turibdi.")
+
+            def log_message(self, format, *args):
+                pass  # konsolni keraksiz log bilan to'ldirmaslik uchun
+
+        def run_health_server():
+            server = HTTPServer(("0.0.0.0", config.PORT), HealthHandler)
+            server.serve_forever()
+
+        threading.Thread(target=run_health_server, daemon=True).start()
+        print(f"Health-check server {config.PORT} portda ishga tushdi.")
+
     app.run()

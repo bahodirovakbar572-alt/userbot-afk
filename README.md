@@ -59,6 +59,57 @@ AFK yoqilganda, sizga shaxsiy xabar yozgan har bir odamga **faqat bir marta**
 avtomatik javob yuboriladi (spam bo'lmasligi uchun), toki siz `.unafk`
 qilmaguningizcha.
 
+## 6. Render.com'ga bepul deploy qilish
+
+Render'ga deploy qilishdan oldin ikkita narsani yodda tuting:
+
+- Render fayl tizimi vaqtinchalik, shuning uchun `.session` fayl o'rniga
+  **session string** ishlatiladi.
+- Render bepul tarifida faqat **Web Service** ishlaydi (background worker
+  emas), shuning uchun `main.py` ichiga kichik "health-check" http server
+  qo'shilgan — bu shart, aks holda Render deploy'ni muvaffaqiyatsiz deb hisoblaydi.
+- ⚠️ Bepul tarifda servis 15 daqiqa faolliksiz qolsa **uxlab qoladi** va
+  keyingi so'rov kelganda qayta uyg'onadi (bu paytda userbot vaqtincha
+  ulanishdan uziladi). Buni oldini olish uchun bepul "UptimeRobot" kabi
+  xizmat orqali har 10-14 daqiqada Render URL'ingizga so'rov yuborib turishingiz
+  mumkin (monitor turi: HTTP(s), interval: 10-14 daqiqa).
+
+### Qadamlar:
+
+**1) Session string oling (faqat lokal kompyuteringizda):**
+
+```bash
+python generate_session.py
+```
+
+Bu sizdan telefon raqam va SMS kodni so'raydi (agar avval `userbot.session`
+fayli orqali kirgan bo'lsangiz, endi kod so'ramasligi ham mumkin). Oxirida
+uzun bir qatorli **SESSION_STRING** chiqadi — uni nusxalab, xavfsiz joyga
+saqlab qo'ying.
+
+**2) Kodni GitHub'ga yuklang**
+
+Loyihani (barcha fayllarni) o'zingizning GitHub repositoryingizga push qiling.
+
+**3) Render'da yangi Web Service yarating**
+
+1. https://render.com saytiga kiring (GitHub akkount bilan ro'yxatdan o'ting)
+2. **New +** → **Web Service** ni tanlang
+3. GitHub repositoryingizni ulang
+4. Quyidagilarni kiriting:
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `python main.py`
+   - **Instance Type:** Free
+5. **Environment** bo'limida quyidagi environment variable larni qo'shing:
+   - `API_ID` → sizning api_id
+   - `API_HASH` → sizning api_hash
+   - `SESSION_STRING` → 1-qadamda olingan session string
+6. **Create Web Service** tugmasini bosing
+
+Render avtomatik ravishda kodni build qilib, ishga tushiradi. Loglarda
+`"Userbot ishga tushmoqda..."` va `"Health-check server ... portda ishga
+tushdi"` degan xabarlarni ko'rsangiz — hammasi tayyor, botingiz ishlayapti!
+
 ## ⚠️ Diqqat
 
 - **`userbot.session` faylini hech kimga bermang** — bu fayl orqali kimdir
@@ -69,4 +120,3 @@ qilmaguningizcha.
   o'lchovli (AFK javob) foydalanish uchun mo'ljallangan.
 - Kodni istalgancha o'zgartirib, yangi buyruqlar qo'shishingiz mumkin —
   `main.py` ichida har bir buyruq alohida funksiya sifatida yozilgan.
-# userbot-afk
